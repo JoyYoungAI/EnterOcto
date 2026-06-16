@@ -30,8 +30,16 @@ import sys
 from typing import Any
 
 SCHEMA_VERSION = "0.1.0"
-CASE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+CASE_ID_RE = re.compile(r"^(?!.*\.\.)[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 INTERFACE_RE = re.compile(r"^[A-Za-z0-9_.:@-]{1,64}$")
+BOOLEAN_POLICY_FIELDS = (
+    "capture_enabled",
+    "allow_private_addresses",
+    "allow_loopback_addresses",
+    "allow_multicast_addresses",
+    "allow_unspecified_addresses",
+    "run_tshark_analysis",
+)
 
 
 class ValidationError(ValueError):
@@ -109,6 +117,19 @@ def validate_integer(value: Any, name: str, minimum: int, maximum: int) -> int:
     return value
 
 
+def validate_boolean(value: Any, name: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValidationError(f"{name} must be a boolean")
+    return value
+
+
+def validate_policy_booleans(policy: dict[str, Any]) -> dict[str, bool]:
+    return {
+        field: validate_boolean(policy.get(field), f"policy.{field}")
+        for field in BOOLEAN_POLICY_FIELDS
+    }
+
+
 def validate_address(value: Any, policy: dict[str, Any]) -> str:
     if not isinstance(value, str):
         raise ValidationError("capture.host must be an IPv4 or IPv6 address")
@@ -124,7 +145,9 @@ def validate_address(value: Any, policy: dict[str, Any]) -> str:
         ("is_unspecified", "allow_unspecified_addresses", "unspecified"),
     ]
     for attribute, setting, label in checks:
-        if getattr(address, attribute) and not bool(policy.get(setting, False)):
+        if getattr(address, attribute) and not validate_boolean(
+            policy.get(setting), f"policy.{setting}"
+        ):
             raise ValidationError(f"{label} addresses are disabled by policy")
     return address.compressed
 
@@ -132,6 +155,7 @@ def validate_address(value: Any, policy: dict[str, Any]) -> str:
 def validate_inputs(
     event: dict[str, Any], policy: dict[str, Any]
 ) -> dict[str, Any]:
+    policy_booleans = validate_policy_booleans(policy)
     case_id = validate_case_id(event.get("case_id"))
     capture = event.get("capture")
     if not isinstance(capture, dict):
@@ -181,6 +205,8 @@ def validate_inputs(
         "port": port,
         "duration_seconds": duration,
         "max_kilobytes": max_kilobytes,
+        "capture_enabled": policy_booleans["capture_enabled"],
+        "run_tshark_analysis": policy_booleans["run_tshark_analysis"],
     }
 
 
@@ -221,6 +247,57 @@ def write_json(path: Path, value: Any) -> None:
     path.chmod(0o600)
 
 
+def write_text_artifact(path: Path, value: str | bytes | None) -> None:
+    if value is None:
+        text = ""
+    elif isinstance(value, bytes):
+        text = value.decode("utf-8", errors="replace")
+    else:
+        text = value
+    path.write_text(text, encoding="utf-8")
+    path.chmod(0o600)
+
+
+def try_write_text_artifact(path: Path, value: str | bytes | None) -> str | None:
+    try:
+        write_text_artifact(path, value)
+    except OSError as exc:
+        return f"artifact could not be written: {exc.__class__.__name__}"
+    return None
+
+
+def combine_process_output(stdout: str | bytes | None, stderr: str | bytes | None) -> str:
+    parts: list[str] = []
+    for value in (stdout, stderr):
+        if value is None:
+            continue
+        if isinstance(value, bytes):
+            parts.append(value.decode("utf-8", errors="replace"))
+        else:
+            parts.append(value)
+    return "".join(parts)
+
+
+def resolve_executable(name: str) -> str | None:
+    path = shutil.which(name)
+    if path is None:
+        return None
+    resolved = Path(path).expanduser().resolve()
+    if not resolved.is_file() or not os.access(resolved, os.X_OK):
+        raise ValidationError(f"{name} was found but is not executable")
+    return str(resolved)
+
+
+def operator_identity() -> dict[str, Any]:
+    uid = os.getuid() if hasattr(os, "getuid") else 0
+    gid = os.getgid() if hasattr(os, "getgid") else 0
+    return {
+        "username": getpass.getuser(),
+        "uid": uid,
+        "gid": gid,
+    }
+
+
 def artifact_record(case_dir: Path, path: Path) -> dict[str, Any]:
     media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     return {
@@ -257,12 +334,17 @@ def run_workflow(
     policy = load_json(policy_path)
     values = validate_inputs(event, policy)
 
-    capture_allowed = bool(policy.get("capture_enabled", False))
+    capture_allowed = values["capture_enabled"]
     capture_mode = execute and capture_allowed
     if execute and not capture_allowed:
         raise ValidationError(
             "--execute was requested but policy.capture_enabled is false"
         )
+
+    dumpcap_path = resolve_executable("dumpcap") if capture_mode else shutil.which("dumpcap")
+    if capture_mode and dumpcap_path is None:
+        raise ValidationError("dumpcap is required when capture is enabled")
+    tshark_path = resolve_executable("tshark")
 
     case_dir = create_case_directory(output_root, values["case_id"])
     event_copy = case_dir / "alert.json"
@@ -272,7 +354,6 @@ def run_workflow(
 
     pcap_path = case_dir / "packet" / "capture.pcapng"
     filter_expression = capture_filter(values["host"], values["port"])
-    dumpcap_path = shutil.which("dumpcap")
     command_executable = dumpcap_path or "dumpcap"
     command = build_dumpcap_command(
         command_executable,
@@ -292,16 +373,27 @@ def run_workflow(
         },
     )
 
-    started_at = None
-    finished_at = None
-    return_code = None
-    error: str | None = None
-    status = "planned"
+    capture_started_at = None
+    capture_finished_at = None
+    capture_return_code = None
+    capture_error: str | None = None
+    capture_status = "planned"
+
+    analysis_requested = values["run_tshark_analysis"]
+    analysis_started_at = None
+    analysis_finished_at = None
+    analysis_return_code = None
+    analysis_error: str | None = None
+    analysis_artifacts: list[str] = []
+    if not analysis_requested:
+        analysis_status = "not-requested"
+    elif capture_mode:
+        analysis_status = "planned"
+    else:
+        analysis_status = "planned"
 
     if capture_mode:
-        if dumpcap_path is None:
-            raise ValidationError("dumpcap is required when capture is enabled")
-        started_at = utc_now()
+        capture_started_at = utc_now()
         try:
             result = subprocess.run(
                 command,
@@ -311,41 +403,86 @@ def run_workflow(
                 text=True,
                 timeout=values["duration_seconds"] + 20,
             )
-            return_code = result.returncode
-            (case_dir / "capture.stdout.txt").write_text(
-                result.stdout, encoding="utf-8"
+            capture_return_code = result.returncode
+            write_text_artifact(case_dir / "capture.stdout.txt", result.stdout)
+            write_text_artifact(case_dir / "capture.stderr.txt", result.stderr)
+            capture_status = (
+                "completed"
+                if result.returncode == 0 and pcap_path.exists()
+                else "failed"
             )
-            (case_dir / "capture.stderr.txt").write_text(
-                result.stderr, encoding="utf-8"
-            )
-            status = "completed" if result.returncode == 0 and pcap_path.exists() else "failed"
-            if status == "failed":
-                error = f"dumpcap exited with return code {result.returncode}"
+            if capture_status == "failed":
+                capture_error = f"dumpcap exited with return code {result.returncode}"
         except subprocess.TimeoutExpired as exc:
-            status = "failed"
-            error = f"dumpcap exceeded workflow timeout: {exc}"
+            capture_status = "failed"
+            capture_error = "dumpcap exceeded workflow timeout"
+            write_text_artifact(case_dir / "capture.stdout.txt", exc.stdout)
+            write_text_artifact(case_dir / "capture.stderr.txt", exc.stderr)
+        except OSError as exc:
+            capture_status = "failed"
+            capture_error = f"dumpcap could not be executed: {exc.__class__.__name__}"
+            write_text_artifact(case_dir / "capture.stdout.txt", "")
+            write_text_artifact(case_dir / "capture.stderr.txt", "")
         finally:
-            finished_at = utc_now()
+            capture_finished_at = utc_now()
 
         if (
-            status == "completed"
-            and bool(policy.get("run_tshark_analysis", True))
-            and shutil.which("tshark")
+            capture_status == "completed"
+            and analysis_requested
         ):
-            analysis_path = case_dir / "analysis" / "protocol-hierarchy.txt"
-            analysis = subprocess.run(
-                ["tshark", "-r", str(pcap_path), "-q", "-z", "io,phs"],
-                shell=False,
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-            analysis_path.write_text(
-                (analysis.stdout or "") + (analysis.stderr or ""),
-                encoding="utf-8",
-            )
-            analysis_path.chmod(0o600)
+            if tshark_path is None:
+                analysis_status = "tool-unavailable"
+                analysis_error = "tshark is not installed or not executable"
+            else:
+                analysis_path = case_dir / "analysis" / "protocol-hierarchy.txt"
+                analysis_started_at = utc_now()
+                try:
+                    analysis = subprocess.run(
+                        [tshark_path, "-r", str(pcap_path), "-q", "-z", "io,phs"],
+                        shell=False,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+                    analysis_return_code = analysis.returncode
+                    write_error = try_write_text_artifact(
+                        analysis_path,
+                        (analysis.stdout or "") + (analysis.stderr or ""),
+                    )
+                    if write_error is not None:
+                        analysis_status = "failed"
+                        analysis_error = write_error
+                    elif analysis.returncode == 0:
+                        analysis_status = "completed"
+                        analysis_artifacts.append("analysis/protocol-hierarchy.txt")
+                    else:
+                        analysis_status = "failed"
+                        analysis_error = (
+                            f"tshark exited with return code {analysis.returncode}"
+                        )
+                        analysis_artifacts.append("analysis/protocol-hierarchy.txt")
+                except subprocess.TimeoutExpired as exc:
+                    analysis_status = "timeout"
+                    analysis_error = "tshark exceeded analysis timeout"
+                    write_error = try_write_text_artifact(
+                        analysis_path,
+                        combine_process_output(exc.stdout, exc.stderr),
+                    )
+                    if write_error is None:
+                        analysis_artifacts.append("analysis/protocol-hierarchy.txt")
+                    else:
+                        analysis_error = f"{analysis_error}; {write_error}"
+                except OSError as exc:
+                    analysis_status = "failed"
+                    analysis_error = (
+                        f"tshark could not be executed: {exc.__class__.__name__}"
+                    )
+                finally:
+                    analysis_finished_at = utc_now()
+        elif capture_mode and capture_status != "completed" and analysis_requested:
+            analysis_status = "not-requested"
+            analysis_error = "capture did not complete"
 
     artifact_paths = [
         event_copy,
@@ -362,6 +499,10 @@ def run_workflow(
         if path.exists() and path.is_file()
     ]
 
+    status = "failed" if capture_status == "failed" else "completed"
+    if not capture_mode:
+        status = "planned"
+
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "case_id": values["case_id"],
@@ -374,6 +515,7 @@ def run_workflow(
         },
         "capture": {
             "enabled": capture_mode,
+            "status": capture_status,
             "interface": values["interface"],
             "host": values["host"],
             "port": values["port"],
@@ -381,25 +523,32 @@ def run_workflow(
             "max_kilobytes": values["max_kilobytes"],
             "filter": filter_expression,
             "command": command,
-            "started_at": started_at,
-            "finished_at": finished_at,
-            "return_code": return_code,
+            "started_at": capture_started_at,
+            "finished_at": capture_finished_at,
+            "return_code": capture_return_code,
+            "error": capture_error,
+        },
+        "analysis": {
+            "requested": analysis_requested,
+            "tool_available": tshark_path is not None,
+            "status": analysis_status,
+            "return_code": analysis_return_code,
+            "started_at": analysis_started_at,
+            "finished_at": analysis_finished_at,
+            "error": analysis_error,
+            "artifacts": analysis_artifacts,
         },
         "environment": {
             "hostname": socket.gethostname(),
             "python_version": platform.python_version(),
-            "operator": {
-                "username": getpass.getuser(),
-                "uid": os.getuid(),
-                "gid": os.getgid(),
-            },
+            "operator": operator_identity(),
             "tools": {
                 "dumpcap": first_version_line("dumpcap"),
                 "tshark": first_version_line("tshark"),
             },
         },
         "artifacts": artifacts,
-        "error": error,
+        "error": capture_error,
     }
 
     manifest_path = case_dir / "manifest.json"
