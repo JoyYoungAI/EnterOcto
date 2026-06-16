@@ -2,9 +2,9 @@
 
 # EnterOcto
 
-### Shadow AI Agent Detection, Forensics, and Response
+### AI Agent Visibility, Evidence, and Governance
 
-**Discover shadow AI agents, correlate runtime behavior, and preserve evidence before the trail disappears.**
+**Make unmanaged AI agent activity observable, explainable, and auditable before context is lost.**
 
 </div>
 
@@ -20,24 +20,24 @@
 
 > [!IMPORTANT]
 > EnterOcto is currently an early-stage open-source security research and engineering project.  
-> The initial focus is **detection, investigation, and evidence preservation**. Automated containment is planned for a later phase.
+> The initial focus is **visibility, investigation, and evidence preservation**. Governed response controls are planned for a later phase.
 
 ## Overview
 
-EnterOcto is an open-source security platform concept for detecting and investigating unauthorized, unmanaged, or high-risk AI agents operating inside enterprise environments.
+EnterOcto is an open-source security platform concept for observing, investigating, and governing unmanaged or high-risk AI agent activity inside enterprise environments.
 
 The project combines network telemetry, host runtime events, correlation rules, automated evidence collection, and incident-ready case records.
 
 The initial technical stack is built around:
 
-- **Zeek** for network visibility and suspicious connection discovery
+- **Zeek** for network visibility and unusual connection discovery
 - **Falco** for Linux runtime and process behavior detection
 - **Wazuh Agent / Manager** for telemetry collection, alert correlation, and risk decisions
 - **Wazuh Active Response** for controlled response orchestration
 - **Dumpcap** for bounded packet capture
 - **TShark** for packet analysis and evidence inspection
 
-EnterOcto is not intended to identify an application solely by its product name. It correlates network, process, identity, file-access, and runtime evidence to identify behavior consistent with shadow AI agents.
+EnterOcto is not intended to identify an application solely by its product name. It correlates network, process, identity, file-access, and runtime evidence to understand behavior consistent with unmanaged AI agent activity.
 
 ## About JoyYoungAI
 
@@ -109,7 +109,7 @@ The architecture follows an octopus-inspired model:
 | Trace | Build an investigation timeline |
 | Ink | Capture volatile evidence |
 | Vault | Retain artifacts and audit records |
-| Grip | Contain or block malicious activity |
+| Grip | Apply governed response controls |
 
 ## Current Product Scope
 
@@ -117,26 +117,26 @@ The first product track is:
 
 ### EnterOcto Trace
 
-**Shadow AI Agent Detection & Forensics**
+**AI Agent Visibility & Evidence**
 
 EnterOcto Trace is designed to:
 
-- Detect suspicious AI-agent-like activity across network and host telemetry
+- Observe unusual AI-agent-like activity across network and host telemetry
 - Correlate IP addresses, ports, users, processes, command lines, and file access
-- Trigger targeted packet capture without immediately alerting the suspected process
+- Trigger targeted packet capture before response actions change system behavior
 - Preserve incident context as a structured evidence package
 - Produce investigation-ready timelines for security analysts and auditors
 
 ### Current focus
 
 ```text
-Detect → Correlate → Trace → Preserve
+Observe → Correlate → Trace → Preserve
 ```
 
 ### Planned next phase
 
 ```text
-Assess → Contain → Block → Revoke
+Assess → Govern → Limit → Remediate
 ```
 
 ## Architecture
@@ -211,7 +211,7 @@ Correlation should consider:
 - Alert sequence
 - Known or approved AI-agent inventory
 
-A single WebSocket connection or Python process is not enough to classify an event as malicious. EnterOcto is designed around multi-source evidence.
+A single WebSocket connection or Python process is not enough to treat an event as confirmed risk. EnterOcto is designed around multi-source evidence.
 
 ### 3. Trace — Investigation Layer
 
@@ -232,13 +232,13 @@ When a high-risk correlation rule is triggered, the reference Wazuh Active Respo
 
 Initial capture policy:
 
-- Filter by suspicious IP address, port, or interface
+- Filter by selected IP address, port, or interface from the reviewed event
 - Stop after **60 seconds**, or
 - Stop when capture size reaches approximately **50 MB**
 - Record the triggering alert and capture parameters
 - Calculate a cryptographic hash for the resulting evidence
 
-The first release favors evidence preservation over immediate blocking to avoid destroying volatile context or warning the suspected process.
+The first release favors evidence preservation before any response action changes volatile system context.
 
 
 > [!WARNING]
@@ -275,21 +275,21 @@ case-<case-id>/
     └── sha256sum.txt
 ```
 
-### 6. Grip — Response Layer
+### 6. Grip — Governed Response Layer
 
-EnterOcto Grip is a planned containment module.
+EnterOcto Grip is a planned governed response module.
 
 Potential actions include:
 
-- Suspend or terminate a process tree
-- Isolate a container or workload
-- Block a destination IP or domain
-- Terminate a suspicious WebSocket connection
-- Revoke an API token
-- Disable or lock an account
-- Quarantine an unauthorized agent skill or extension
+- Pause or limit a process tree
+- Isolate a container or workload through approved controls
+- Restrict a destination IP or domain
+- Close an unusual WebSocket connection through policy
+- Rotate or revoke an exposed API token
+- Limit or disable an account through policy
+- Isolate an unapproved agent skill or extension
 
-Automated containment must be policy-driven, reversible where possible, and fully audited.
+Automated response must be policy-driven, reversible where possible, and fully audited.
 
 ## Product Lifecycle
 
@@ -300,7 +300,7 @@ Automated containment must be policy-driven, reversible where possible, and full
 | 3 | Trace | Build timelines and investigation context | Current focus |
 | 4 | Ink | Capture PCAP and volatile evidence | Current focus |
 | 5 | Vault | Retain evidence and integrity records | Planned |
-| 6 | Grip | Automated containment and access revocation | Future |
+| 6 | Grip | Governed response and access remediation | Future |
 
 ## Implementation Status
 
@@ -317,7 +317,7 @@ distinguishes documented architecture from working implementation.
 | Controlled Dumpcap/TShark evidence capture | Initial MVP included; dry-run by default |
 | Evidence manifest schema | Initial Draft 2020-12 schema included |
 | Investigation timeline schema | Not yet implemented |
-| Automated containment through EnterOcto Grip | Future |
+| Governed response through EnterOcto Grip | Future |
 
 The first technical milestone is a minimal **Ink + Vault** evidence workflow:
 validate an event, run a bounded packet capture through an independently
@@ -372,7 +372,7 @@ Before enabling capture, review
 1. Zeek observes an unknown long-lived WebSocket connection.
 2. Falco detects a Python process reading a large number of local files.
 3. Wazuh Manager correlates the two events by host, time, user, and process context.
-4. The correlation rule assigns a high shadow-AI risk score.
+4. The correlation rule assigns a high unmanaged-agent risk score.
 5. Wazuh Active Response launches the EnterOcto capture script.
 6. Dumpcap records traffic for up to 60 seconds or approximately 50 MB.
 7. TShark may analyze the resulting capture without running as the privileged capture process.
@@ -494,12 +494,12 @@ See [REPO-SPLIT.md](REPO-SPLIT.md) for the complete repository policy.
 - SHA-256 integrity verification
 - Evidence retention policy
 
-### Phase 3 — Respond
+### Phase 3 — Governed Response
 
-- Process suspension and termination
-- Destination blocking
-- Token revocation hooks
-- Container isolation
+- Process pause or limitation
+- Destination restriction
+- Token rotation or revocation hooks
+- Container isolation through approved controls
 - Approval workflows and rollback
 
 ### Phase 4 — Enterprise Readiness
@@ -518,9 +518,9 @@ The initial release does not aim to:
 - Reliably identify every AI agent from encrypted network traffic alone
 - Decrypt TLS traffic without an approved enterprise inspection design
 - Replace EDR, NDR, SIEM, or DFIR platforms
-- Automatically block all suspicious processes by default
+- Automatically restrict all unusual processes by default
 - Treat every Python, Node.js, WebSocket, or API connection as malicious
-- Claim full AI Agent Detection and Response coverage before containment is implemented
+- Claim full AI agent governance coverage before response controls are implemented
 
 ## Platform Notes
 
@@ -558,8 +558,8 @@ There is currently no stable or production-ready EnterOcto release. The reposito
 now includes an initial Ink + Vault command-line MVP, but it remains a reference
 prototype and is not a complete installable security platform.
 
-The public roadmap prioritizes transparent detection logic, reproducible
-evidence handling, and safe response automation.
+The public roadmap prioritizes transparent observation logic, reproducible
+evidence handling, and safe governed response automation.
 
 Interfaces, schemas, rule formats, and module names may change before the first
 stable release.
@@ -600,7 +600,7 @@ reporting guidance in [`SECURITY.md`](SECURITY.md).
 - **EnterOcto Trace** — investigation and runtime tracing
 - **EnterOcto Ink** — targeted evidence capture
 - **EnterOcto Vault** — evidence retention
-- **EnterOcto Grip** — future containment and response
+- **EnterOcto Grip** — future governed response
 
 GitHub repository searches performed in June 2026 did not identify an exact public repository match for `EnterOcto` or `EnterOcto-Trace`. Similar biological wording such as `enteroctopus` is already used elsewhere, so the project should consistently use the exact **EnterOcto** spelling.
 
