@@ -9,6 +9,12 @@
 </div>
 
 <p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="Apache License 2.0"></a>
+  <img src="https://img.shields.io/badge/Status-Design%20%26%20Early%20Prototype-orange.svg" alt="Project status">
+  <img src="https://img.shields.io/badge/Platform-Linux--first-lightgrey.svg" alt="Linux-first">
+</p>
+
+<p align="center">
   <img src="docs/images/enterocto-product-lifecycle.png" alt="EnterOcto product lifecycle" width="100%">
 </p>
 
@@ -31,6 +37,34 @@ The initial technical stack is built around:
 - **TShark** for targeted packet capture and evidence preservation
 
 EnterOcto is not intended to identify an application solely by its product name. It correlates network, process, identity, file-access, and runtime evidence to identify behavior consistent with shadow AI agents.
+
+## Licensing Model
+
+The main **EnterOcto** repository is licensed under the
+[Apache License 2.0](LICENSE).
+
+EnterOcto is designed to interoperate with separately installed open-source
+security tools. Their original licenses remain unchanged:
+
+| Project | Upstream license | EnterOcto integration boundary |
+|---|---|---|
+| Zeek | BSD-style three-clause license | Logs, scripts and telemetry interfaces |
+| Falco | Apache-2.0 | JSON/runtime telemetry and original EnterOcto rules |
+| Wazuh | GPL-2.0 | Separate service and separate `EnterOcto-Wazuh` repository |
+| Wireshark / TShark / Dumpcap | GPL-2.0 | External command-line executables and capture output |
+
+The Apache-2.0 license applies only to original EnterOcto material unless a
+file states otherwise. It does not relicense third-party projects.
+
+The main repository does not intend to redistribute Zeek, Falco, Wazuh,
+Wireshark, TShark, or Dumpcap binaries. See
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
+[REPO-SPLIT.md](REPO-SPLIT.md) for the integration and distribution policy.
+
+> [!CAUTION]
+> Wazuh states that its GPLv2 license also applies to its included decoders,
+> rules and data files unless otherwise specified. Wazuh-native content must
+> not be copied into the Apache-2.0 core repository without a licensing review.
 
 ## Why the name EnterOcto?
 
@@ -247,12 +281,19 @@ Automated containment must be policy-driven, reversible where possible, and full
 
 ## Repository Structure
 
-The proposed repository layout is:
+EnterOcto uses a license-separated repository model.
+
+### Main repository: `JoyYoungAI/EnterOcto`
+
+License: **Apache-2.0**
 
 ```text
 EnterOcto/
 ├── README.md
 ├── LICENSE
+├── NOTICE
+├── THIRD_PARTY_NOTICES.md
+├── REPO-SPLIT.md
 ├── SECURITY.md
 ├── CONTRIBUTING.md
 ├── docs/
@@ -260,23 +301,48 @@ EnterOcto/
 │   ├── detection-rules/
 │   ├── deployment/
 │   └── images/
-├── rules/
+├── core/
+│   ├── correlation/
+│   ├── timeline/
+│   └── evidence/
+├── integrations/
+│   ├── zeek/
 │   ├── falco/
-│   ├── wazuh/
-│   └── zeek/
+│   └── tshark/
 ├── scripts/
-│   ├── active-response/
 │   ├── capture/
 │   └── evidence/
 ├── schemas/
 │   ├── case-manifest.schema.json
 │   └── timeline.schema.json
 ├── tests/
-│   ├── fixtures/
-│   ├── integration/
-│   └── rules/
 └── examples/
 ```
+
+The TShark integration is an external CLI adapter. This repository does not
+embed or redistribute Wireshark/TShark source code or binaries by default.
+
+### Wazuh integration repository: `JoyYoungAI/EnterOcto-Wazuh`
+
+License: **GPL-2.0-only**
+
+```text
+EnterOcto-Wazuh/
+├── README.md
+├── LICENSE
+├── THIRD_PARTY_NOTICES.md
+├── decoders/
+├── rules/
+├── active-response/
+├── tests/
+└── examples/
+```
+
+This separate repository is intended for Wazuh-native decoders, rules, and
+Active Response integration content. It preserves a clear boundary between the
+Apache-2.0 EnterOcto Core and GPLv2 Wazuh integration material.
+
+See [REPO-SPLIT.md](REPO-SPLIT.md) for the complete repository policy.
 
 ## Initial Milestones
 
@@ -292,7 +358,8 @@ EnterOcto/
 
 - Zeek event ingestion
 - Falco runtime rules
-- Wazuh decoders and correlation rules
+- Define the GPL-2.0-only `EnterOcto-Wazuh` integration repository
+- Implement Wazuh decoders and correlation rules in that repository
 - Timeline generation
 - Case ID creation
 
@@ -374,7 +441,7 @@ Contributions are welcome in the following areas:
 
 - Zeek scripts and detections
 - Falco rules
-- Wazuh decoders and correlation rules
+- Wazuh decoders and correlation rules through `EnterOcto-Wazuh`
 - Packet-capture safeguards
 - Evidence schemas
 - Timeline generation
@@ -410,9 +477,20 @@ GitHub repository searches performed in June 2026 did not identify an exact publ
 
 ## License
 
-A license has not yet been selected.
+Original content in this repository is licensed under the
+[Apache License 2.0](LICENSE), unless a file explicitly states otherwise.
 
-Before the repository is publicly released as open source, add an OSI-approved license and confirm that all bundled rules, scripts, documentation, and third-party integrations are compatible with it.
+Copyright 2026 JoyYoungAI and EnterOcto contributors.
+
+Third-party software and integration targets retain their own licenses.
+EnterOcto does not claim ownership of Zeek, Falco, Wazuh, Wireshark, TShark,
+or Dumpcap.
+
+- See [NOTICE](NOTICE) for EnterOcto attribution.
+- See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream projects.
+- See [REPO-SPLIT.md](REPO-SPLIT.md) for the Apache/GPL repository boundary.
+
+The planned `EnterOcto-Wazuh` repository will use `GPL-2.0-only`.
 
 ---
 

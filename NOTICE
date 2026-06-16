@@ -1,0 +1,11 @@
+EnterOcto
+Copyright 2026 JoyYoungAI and EnterOcto contributors
+
+This product includes software developed by the EnterOcto project.
+
+EnterOcto is designed to interoperate with independently installed third-party
+software, including Zeek, Falco, Wazuh, Wireshark, TShark, and Dumpcap.
+Those projects are not distributed under the EnterOcto Apache License 2.0 and
+remain governed by their own licenses and notices.
+
+See THIRD_PARTY_NOTICES.md for details.
