@@ -13,6 +13,7 @@
     "status",
     "source_event",
     "capture",
+    "analysis",
     "environment",
     "artifacts"
   ],
@@ -23,7 +24,7 @@
     },
     "case_id": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+      "pattern": "^(?!.*\\.\\.)[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
     },
     "created_at": {
       "type": "string",
@@ -65,17 +66,30 @@
       "additionalProperties": false,
       "required": [
         "enabled",
+        "status",
         "interface",
         "host",
         "port",
         "duration_seconds",
         "max_kilobytes",
         "filter",
-        "command"
+        "command",
+        "started_at",
+        "finished_at",
+        "return_code",
+        "error"
       ],
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "completed",
+            "failed"
+          ]
         },
         "interface": {
           "type": "string",
@@ -129,6 +143,77 @@
             "integer",
             "null"
           ]
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "tool_available",
+        "status",
+        "return_code",
+        "started_at",
+        "finished_at",
+        "error",
+        "artifacts"
+      ],
+      "properties": {
+        "requested": {
+          "type": "boolean"
+        },
+        "tool_available": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not-requested",
+            "tool-unavailable",
+            "planned",
+            "completed",
+            "failed",
+            "timeout"
+          ]
+        },
+        "return_code": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "finished_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
