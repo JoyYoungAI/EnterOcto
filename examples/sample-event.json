@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "demo-20260616-001",
+  "observed_at": "2026-06-16T04:30:00Z",
+  "trigger": {
+    "source": "manual-lab",
+    "alert_id": "sample-alert-001",
+    "severity": "high"
+  },
+  "capture": {
+    "interface": "lo",
+    "host": "127.0.0.1",
+    "port": 18789,
+    "duration_seconds": 10,
+    "max_kilobytes": 5000
+  },
+  "context": {
+    "host_id": "lab-host",
+    "user": "demo",
+    "process": {
+      "pid": 1234,
+      "name": "python3"
+    }
+  }
+}

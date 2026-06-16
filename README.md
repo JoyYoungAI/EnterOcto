@@ -34,15 +34,16 @@ The initial technical stack is built around:
 - **Falco** for Linux runtime and process behavior detection
 - **Wazuh Agent / Manager** for telemetry collection, alert correlation, and risk decisions
 - **Wazuh Active Response** for controlled response orchestration
-- **TShark** for targeted packet capture and evidence preservation
+- **Dumpcap** for bounded packet capture
+- **TShark** for packet analysis and evidence inspection
 
 EnterOcto is not intended to identify an application solely by its product name. It correlates network, process, identity, file-access, and runtime evidence to identify behavior consistent with shadow AI agents.
 
 ## About JoyYoungAI
 
-JoyYoungAI is an open-source integration engineering group focused on assembling
-proven open-source components into secure, maintainable, and operationally ready
-solutions.
+JoyYoungAI is a company with an open-source integration engineering team focused
+on assembling proven open-source components into secure, maintainable, and
+operationally ready solutions.
 
 We do not aim to replace upstream projects such as Zeek, Falco, Wazuh, or
 Wireshark. Our work focuses on:
@@ -114,7 +115,7 @@ The architecture follows an octopus-inspired model:
 
 The first product track is:
 
-# EnterOcto Trace
+### EnterOcto Trace
 
 **Shadow AI Agent Detection & Forensics**
 
@@ -155,7 +156,8 @@ flowchart LR
 
     subgraph Execution["Execution Layer"]
         AR[Wazuh Active Response]
-        TS[TShark / Dumpcap]
+        DC[Dumpcap Capture]
+        TS[TShark Analysis]
     end
 
     subgraph Evidence["Evidence Layer"]
@@ -169,7 +171,8 @@ flowchart LR
     WA --> WM
     WM --> C
     C --> AR
-    AR --> TS
+    AR --> DC
+    DC --> TS
     C --> TR
     TS --> INK
     TR --> V
@@ -311,14 +314,53 @@ distinguishes documented architecture from working implementation.
 | Zeek detection scripts | Not yet implemented |
 | Falco runtime rules | Not yet implemented |
 | Wazuh integration pack | Planned for `EnterOcto-Wazuh` |
-| Controlled Dumpcap/TShark evidence capture | Not yet implemented |
-| Evidence manifest and timeline schemas | Not yet implemented |
+| Controlled Dumpcap/TShark evidence capture | Initial MVP included; dry-run by default |
+| Evidence manifest schema | Initial Draft 2020-12 schema included |
+| Investigation timeline schema | Not yet implemented |
 | Automated containment through EnterOcto Grip | Future |
 
 The first technical milestone is a minimal **Ink + Vault** evidence workflow:
 validate an event, run a bounded packet capture through an independently
 installed capture tool, generate cryptographic hashes, and create a structured
 evidence manifest.
+
+## Ink + Vault MVP Quick Start
+
+The first executable prototype validates a structured event, creates an
+evidence case directory, records the planned capture command, calculates
+SHA-256 hashes, and writes a manifest that follows
+[`schemas/evidence-manifest.schema.json`](schemas/evidence-manifest.schema.json).
+
+The workflow is **dry-run by default** and does not capture packets unless both:
+
+1. the policy sets `capture_enabled` to `true`; and
+2. the command is run with `--execute`.
+
+Requirements:
+
+- Linux
+- Python 3.11 or later
+- Dumpcap for packet capture when execution is enabled
+- TShark for optional post-capture analysis
+
+Dry-run example:
+
+```bash
+python3 scripts/capture/enterocto_capture.py \
+  --event examples/sample-event.json \
+  --policy config/capture-policy.example.json \
+  --output-dir ./evidence
+```
+
+Run the tests:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Before enabling capture, review
+[`SECURITY.md`](SECURITY.md) and
+[`docs/mvp-ink-vault.md`](docs/mvp-ink-vault.md).
 
 ## Example Detection Scenario
 
@@ -332,6 +374,27 @@ evidence manifest.
 7. TShark may analyze the resulting capture without running as the privileged capture process.
 8. EnterOcto Trace creates an investigation timeline.
 9. EnterOcto Vault stores the evidence capsule and SHA-256 manifest.
+```
+
+## Current Prototype Files
+
+```text
+EnterOcto/
+├── SECURITY.md
+├── CONTRIBUTING.md
+├── config/
+│   └── capture-policy.example.json
+├── docs/
+│   └── mvp-ink-vault.md
+├── examples/
+│   └── sample-event.json
+├── schemas/
+│   └── evidence-manifest.schema.json
+├── scripts/
+│   └── capture/
+│       └── enterocto_capture.py
+└── tests/
+    └── test_enterocto_capture.py
 ```
 
 ## Planned Repository Structure
@@ -420,7 +483,8 @@ See [REPO-SPLIT.md](REPO-SPLIT.md) for the complete repository policy.
 
 ### Phase 2 — Preserve
 
-- Targeted TShark capture
+- Targeted Dumpcap capture
+- TShark-based packet analysis
 - Capture size and duration limits
 - Evidence manifest generation
 - SHA-256 integrity verification
@@ -486,9 +550,9 @@ Do not run unreviewed Active Response scripts with unrestricted root privileges.
 
 **Status:** Design and early prototype
 
-There is currently no stable or production-ready EnterOcto release. Cloning this
-repository provides the project architecture, licensing policy, and design
-documentation; it does not yet provide a complete installable security platform.
+There is currently no stable or production-ready EnterOcto release. The repository
+now includes an initial Ink + Vault command-line MVP, but it remains a reference
+prototype and is not a complete installable security platform.
 
 The public roadmap prioritizes transparent detection logic, reproducible
 evidence handling, and safe response automation.
@@ -524,7 +588,7 @@ Before submitting production-facing response logic, include:
 
 Do not publish exploitable vulnerabilities, sensitive captures, access tokens, or customer evidence in public issues.
 
-A dedicated `SECURITY.md` and private reporting channel should be established before the first public release.
+Use the private reporting guidance in [`SECURITY.md`](SECURITY.md). Do not publish sensitive vulnerability details, packet captures, credentials, or customer evidence in public issues.
 
 ## Naming
 
