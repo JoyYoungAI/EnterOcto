@@ -1,0 +1,13 @@
+{
+  "capture_enabled": true,
+  "allowed_interfaces": [
+    "lo"
+  ],
+  "max_duration_seconds": 10,
+  "max_capture_kilobytes": 5120,
+  "allow_private_addresses": false,
+  "allow_loopback_addresses": true,
+  "allow_multicast_addresses": false,
+  "allow_unspecified_addresses": false,
+  "run_tshark_analysis": true
+}
