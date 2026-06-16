@@ -38,6 +38,30 @@ The initial technical stack is built around:
 
 EnterOcto is not intended to identify an application solely by its product name. It correlates network, process, identity, file-access, and runtime evidence to identify behavior consistent with shadow AI agents.
 
+## About JoyYoungAI
+
+JoyYoungAI is an open-source integration engineering group focused on assembling
+proven open-source components into secure, maintainable, and operationally ready
+solutions.
+
+We do not aim to replace upstream projects such as Zeek, Falco, Wazuh, or
+Wireshark. Our work focuses on:
+
+- architecture and integration design;
+- secure orchestration and automation;
+- deployment and upgrade workflows;
+- interoperability and evidence handling;
+- licensing and attribution boundaries;
+- testing, operational documentation, and maintainability.
+
+EnterOcto connects independently maintained security tools through clearly
+defined interfaces while preserving each upstream project's original license,
+copyright, trademark, and attribution requirements.
+
+In practical terms, JoyYoungAI does not reinvent every wheel. We select proven
+wheels, inspect them, connect them safely, add the controls and documentation,
+and deliver an integration that can be operated and maintained.
+
 ## Licensing Model
 
 The main **EnterOcto** repository is licensed under the
@@ -60,6 +84,8 @@ The main repository does not intend to redistribute Zeek, Falco, Wazuh,
 Wireshark, TShark, or Dumpcap binaries. See
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
 [REPO-SPLIT.md](REPO-SPLIT.md) for the integration and distribution policy.
+
+References to upstream projects are descriptive. EnterOcto is not endorsed by the upstream projects or their maintainers unless explicitly stated.
 
 > [!CAUTION]
 > Wazuh states that its GPLv2 license also applies to its included decoders,
@@ -168,7 +194,7 @@ Example signals:
 
 ### 2. Cortex — Correlation Layer
 
-Wazuh Manager receives and correlates alerts from Zeek, Falco, Wazuh Agent, and other sources.
+The initial reference implementation uses Wazuh Manager to receive and correlate alerts from Zeek, Falco, Wazuh Agent, and other sources. EnterOcto's long-term architecture treats the decision engine as an integration boundary rather than permanently coupling the product to a single backend.
 
 Correlation should consider:
 
@@ -199,7 +225,7 @@ EnterOcto Trace builds a timeline and connects:
 
 ### 4. Ink — Evidence Capture
 
-When a high-risk correlation rule is triggered, Wazuh Active Response launches a controlled capture script.
+When a high-risk correlation rule is triggered, the reference Wazuh Active Response integration launches a controlled evidence workflow. The preferred design uses **Dumpcap for bounded packet capture** and **TShark for analysis**, with both tools installed and licensed independently.
 
 Initial capture policy:
 
@@ -210,6 +236,13 @@ Initial capture policy:
 - Calculate a cryptographic hash for the resulting evidence
 
 The first release favors evidence preservation over immediate blocking to avoid destroying volatile context or warning the suspected process.
+
+
+> [!WARNING]
+> Full packet capture may contain credentials, tokens, personal data, and
+> sensitive business traffic. Production deployments should default to disabled
+> or metadata-only capture until an approved policy defines authorization,
+> interfaces, exclusions, encryption, access control, retention, and deletion.
 
 ### 5. Vault — Evidence Retention
 
@@ -266,6 +299,27 @@ Automated containment must be policy-driven, reversible where possible, and full
 | 5 | Vault | Retain evidence and integrity records | Planned |
 | 6 | Grip | Automated containment and access revocation | Future |
 
+## Implementation Status
+
+EnterOcto is currently a design and early-prototype project. The table below
+distinguishes documented architecture from working implementation.
+
+| Capability | Status |
+|---|---|
+| Product architecture and lifecycle | Documented |
+| License and third-party integration boundaries | Defined |
+| Zeek detection scripts | Not yet implemented |
+| Falco runtime rules | Not yet implemented |
+| Wazuh integration pack | Planned for `EnterOcto-Wazuh` |
+| Controlled Dumpcap/TShark evidence capture | Not yet implemented |
+| Evidence manifest and timeline schemas | Not yet implemented |
+| Automated containment through EnterOcto Grip | Future |
+
+The first technical milestone is a minimal **Ink + Vault** evidence workflow:
+validate an event, run a bounded packet capture through an independently
+installed capture tool, generate cryptographic hashes, and create a structured
+evidence manifest.
+
 ## Example Detection Scenario
 
 ```text
@@ -274,14 +328,15 @@ Automated containment must be policy-driven, reversible where possible, and full
 3. Wazuh Manager correlates the two events by host, time, user, and process context.
 4. The correlation rule assigns a high shadow-AI risk score.
 5. Wazuh Active Response launches the EnterOcto capture script.
-6. TShark records traffic for up to 60 seconds or approximately 50 MB.
-7. EnterOcto Trace creates an investigation timeline.
-8. EnterOcto Vault stores the evidence capsule and SHA-256 manifest.
+6. Dumpcap records traffic for up to 60 seconds or approximately 50 MB.
+7. TShark may analyze the resulting capture without running as the privileged capture process.
+8. EnterOcto Trace creates an investigation timeline.
+9. EnterOcto Vault stores the evidence capsule and SHA-256 manifest.
 ```
 
-## Repository Structure
+## Planned Repository Structure
 
-EnterOcto uses a license-separated repository model.
+EnterOcto uses a license-separated repository model. The following layout represents the target structure for the first working prototype; some files and directories are not yet present.
 
 ### Main repository: `JoyYoungAI/EnterOcto`
 
@@ -431,9 +486,15 @@ Do not run unreviewed Active Response scripts with unrestricted root privileges.
 
 **Status:** Design and early prototype
 
-The public roadmap prioritizes transparent detection logic, reproducible evidence handling, and safe response automation.
+There is currently no stable or production-ready EnterOcto release. Cloning this
+repository provides the project architecture, licensing policy, and design
+documentation; it does not yet provide a complete installable security platform.
 
-Interfaces, schemas, rule formats, and module names may change before the first stable release.
+The public roadmap prioritizes transparent detection logic, reproducible
+evidence handling, and safe response automation.
+
+Interfaces, schemas, rule formats, and module names may change before the first
+stable release.
 
 ## Contributing
 
@@ -496,6 +557,6 @@ The planned `EnterOcto-Wazuh` repository will use `GPL-2.0-only`.
 
 <div align="center">
 
-**OpenClaw gives agents a claw. EnterOcto watches every arm.**
+**EnterOcto — See every arm. Preserve every trace.**
 
 </div>
