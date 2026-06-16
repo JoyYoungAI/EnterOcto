@@ -57,6 +57,10 @@ evidence/demo-20260616-001/
 └── packet/
 ```
 
+The dry-run manifest uses `mode: dry-run`, top-level `status: planned`,
+`capture.status: planned`, and `analysis.status: planned` when analysis is
+enabled by policy.
+
 ## Enabling capture
 
 1. Install Dumpcap independently using the operating system's supported package.
@@ -75,6 +79,12 @@ evidence/demo-20260616-001/
 Do not use unrestricted `sudo` as the normal operating model. Prefer a narrowly
 configured capture group or capability model appropriate to the operating
 system.
+
+If Dumpcap fails after a case directory has been created, the workflow writes a
+failed manifest and SHA-256 inventory whenever possible. TShark is treated as an
+analysis phase: a TShark timeout or non-zero exit code is recorded under the
+manifest `analysis` object without changing a successful packet capture into a
+failed capture.
 
 ## Event input
 
@@ -112,12 +122,14 @@ The manifest follows:
 schemas/evidence-manifest.schema.json
 ```
 
-The MVP does not require the external `jsonschema` package. CI may add formal
-schema validation later.
+The MVP runtime does not require the external `jsonschema` package. Development
+and CI schema tests install `requirements-dev.txt` and validate dry-run, failed
+capture, and analysis-timeout manifests against the schema.
 
 ## Tests
 
 ```bash
+python3 -m compileall scripts tests
 python3 -m unittest discover -s tests -v
 ```
 

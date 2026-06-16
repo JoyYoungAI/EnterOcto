@@ -327,8 +327,8 @@ evidence manifest.
 ## Ink + Vault MVP Quick Start
 
 The first executable prototype validates a structured event, creates an
-evidence case directory, records the planned capture command, calculates
-SHA-256 hashes, and writes a manifest that follows
+evidence case directory, records the planned capture command, records capture
+and analysis status, calculates SHA-256 hashes, and writes a manifest that follows
 [`schemas/evidence-manifest.schema.json`](schemas/evidence-manifest.schema.json).
 
 The workflow is **dry-run by default** and does not capture packets unless both:
@@ -355,8 +355,12 @@ python3 scripts/capture/enterocto_capture.py \
 Run the tests:
 
 ```bash
+python3 -m compileall scripts tests
 python3 -m unittest discover -s tests -v
 ```
+
+Install `requirements-dev.txt` before running the formal JSON Schema validation
+tests locally or in CI.
 
 Before enabling capture, review
 [`SECURITY.md`](SECURITY.md) and
@@ -431,7 +435,7 @@ EnterOcto/
 │   ├── capture/
 │   └── evidence/
 ├── schemas/
-│   ├── case-manifest.schema.json
+│   ├── evidence-manifest.schema.json
 │   └── timeline.schema.json
 ├── tests/
 └── examples/
@@ -586,9 +590,9 @@ Before submitting production-facing response logic, include:
 
 ## Responsible Disclosure
 
-Do not publish exploitable vulnerabilities, sensitive captures, access tokens, or customer evidence in public issues.
-
-Use the private reporting guidance in [`SECURITY.md`](SECURITY.md). Do not publish sensitive vulnerability details, packet captures, credentials, or customer evidence in public issues.
+Do not publish exploitable vulnerabilities, packet captures, credentials,
+access tokens, or customer evidence in public issues. Follow the private
+reporting guidance in [`SECURITY.md`](SECURITY.md).
 
 ## Naming
 
