@@ -145,6 +145,8 @@ Assess → Govern → Limit → Remediate
 
 ## 架構
 
+完整的分層堆疊視角、證據流程與 repository 邊界圖，請參閱 [docs/architecture/overview.md](docs/architecture/overview.md)。
+
 ```mermaid
 flowchart LR
     subgraph Trigger["Trigger Layer"]

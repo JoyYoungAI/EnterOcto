@@ -163,6 +163,9 @@ Assess → Govern → Limit → Remediate
 
 ## Architecture
 
+For the fuller layered stack view, evidence flow, and repository boundary
+diagram, see [docs/architecture/overview.md](docs/architecture/overview.md).
+
 ```mermaid
 flowchart LR
     subgraph Trigger["Trigger Layer"]
