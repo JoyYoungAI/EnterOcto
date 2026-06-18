@@ -18,6 +18,8 @@
   <img src="docs/images/enterocto-product-lifecycle.png" alt="EnterOcto product lifecycle" width="100%">
 </p>
 
+Languages: [English](README.md) | [繁體中文（台灣）](README.zh-TW.md)
+
 > [!IMPORTANT]
 > EnterOcto is currently an early-stage open-source security research and engineering project.  
 > The initial focus is **visibility, investigation, and evidence preservation**. Governed response controls are planned for a later phase.
