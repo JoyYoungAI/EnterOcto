@@ -16,8 +16,15 @@ that may carry customer, employee, credential, or business traffic.
 ## Install External Tools
 
 Install Wireshark command-line tools through the operating system package
-manager. Do not copy Dumpcap, TShark, or Wireshark binaries into this
-repository.
+manager for this isolated lab only. For normal deployment and operations,
+follow the official Wireshark installation documentation and your operating
+system's package guidance:
+
+```text
+https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html
+```
+
+Do not copy Dumpcap, TShark, or Wireshark binaries into this repository.
 
 ```bash
 sudo apt update

@@ -88,6 +88,26 @@ Wireshark, TShark, or Dumpcap binaries. See
 
 References to upstream projects are descriptive. EnterOcto is not endorsed by the upstream projects or their maintainers unless explicitly stated.
 
+## Upstream Deployment Guidance
+
+EnterOcto is currently an integration prototype. It does not replace the
+deployment, upgrade, hardening, or operations guidance maintained by upstream
+projects.
+
+Use the official documentation when installing or operating the open-source
+components that EnterOcto integrates with:
+
+| Component | Official deployment or installation guidance |
+|---|---|
+| Zeek | [Installing Zeek](https://docs.zeek.org/en/current/install.html) |
+| Falco | [Falco setup](https://falco.org/docs/setup/) |
+| Wazuh | [Wazuh installation guide](https://documentation.wazuh.com/current/installation-guide/index.html) |
+| Wireshark / TShark / Dumpcap | [Building and Installing Wireshark](https://www.wireshark.org/docs/wsug_html_chunked/ChapterBuildInstall.html) |
+
+This repository should document EnterOcto-specific integration assumptions,
+interfaces, schemas, and evidence handling. It should not duplicate or fork
+upstream deployment manuals.
+
 > [!CAUTION]
 > Wazuh states that its GPLv2 license also applies to its included decoders,
 > rules and data files unless otherwise specified. Wazuh-native content must
