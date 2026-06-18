@@ -39,17 +39,15 @@ blindly apply unrestricted setuid or broad `chmod 4755` guidance.
 
 ## Generate Synthetic Traffic
 
-Start a local HTTP server on loopback:
+Start a local HTTP server on loopback and keep it running:
 
 ```bash
 python3 -m http.server 18789 --bind 127.0.0.1
 ```
 
-From another terminal, generate a small request:
-
-```bash
-curl http://127.0.0.1:18789/
-```
+Do not generate the HTTP request yet. Send the request only after the EnterOcto
+capture command below has started, so the request occurs during the capture
+window.
 
 ## Lab Policy
 
@@ -66,12 +64,21 @@ and unspecified addresses. Do not weaken the safe defaults in
 
 ## Run Capture
 
+In a second terminal, start the EnterOcto capture workflow:
+
 ```bash
 python3 scripts/capture/enterocto_capture.py \
   --event examples/sample-event.json \
   --policy config/capture-policy.lab.json.example \
   --output-dir ./evidence-lab \
   --execute
+```
+
+While the capture command is still running, use a third terminal to generate a
+small loopback request:
+
+```bash
+curl http://127.0.0.1:18789/
 ```
 
 ## Acceptance Checks
